@@ -1,5 +1,5 @@
 {
-  "name": "logger",
+  "name": "racer-logger",
   "version": "0.0.1",
   "description": "readable logging for derby applications",
   "main": "index.js",
@@ -8,11 +8,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/derbyjs/logger.git"
+    "url": "https://github.com/derbyjs/racer-logger.git"
   },
   "author": "rkstedman",
   "bugs": {
-    "url": "https://github.com/derbyjs/logger/issues"
+    "url": "https://github.com/derbyjs/racer-logger/issues"
   },
-  "homepage": "https://github.com/derbyjs/logger"
+  "homepage": "https://github.com/derbyjs/racer-logger",
+  "dependencies": {
+    "ansi-color": "^0.2.1",
+    "moment": "^2.9.0"
+  }
 }

@@ -1,123 +1,110 @@
-(function() {
-    'use strict';
+var Transform = require('stream').Transform;
+var util = require('util');
+var moment = require('moment');
+var color = require('ansi-color').set;
 
-    var Transform, moment, sessionLog, util;
+module.exports = function(store) {
+  loggerStream = createStream();
+  loggerStream.pipe(process.stdout);
+  store.logger = loggerStream;
+};
 
-    Transform = require('stream').Transform;
-    util = require('util');
-    moment = require('moment');
-    sessionLog = process.stdout;
+function createStream() {
+  var stream = new Transform({objectMode: true});
+  function push(value) {
+    stream.push(value + ' ');
+  }
 
-    module.exports = function() {
-      var black, blue, bold, color, cyan, green, magenta, origPush, red, stream, white, yellow;
-      color = require('ansi-color').set;
-      bold = function(value) {
-        return color(value, 'bold');
-      };
-      black = function(value) {
-        return color(value, 'black');
-      };
-      red = function(value) {
-        return color(value, 'red');
-      };
-      green = function(value) {
-        return color(value, 'green');
-      };
-      yellow = function(value) {
-        return color(value, 'yellow');
-      };
-      blue = function(value) {
-        return color(value, 'blue');
-      };
-      magenta = function(value) {
-        return color(value, 'magenta');
-      };
-      cyan = function(value) {
-        return color(value, 'cyan');
-      };
-      white = function(value) {
-        return color(value, 'white');
-      };
-      stream = new Transform({
-        objectMode: true
-      });
-      origPush = stream.push;
-      stream.push = function(value) {
-        return origPush.call(this, value + ' ');
-      };
-      stream._transform = function(data, encoding, callback) {
-        var chunk, colorFn, str, strChunk, time, _ref, _ref1;
-        time = moment().format("YYYY/MM/DD HH:mm:ss Z");
-        if (data.chunk) {
-          chunk = data.chunk;
-        } else {
-          chunk = data;
-        }
-        if ((_ref = data.type) === 'C->S' || _ref === 'S->C') {
-          strChunk = JSON.stringify(chunk);
-          if (data.type === 'C->S') {
-            colorFn = green;
-          } else {
-            colorFn = cyan;
-          }
-          str = yellow("" + time + " ") + colorFn("" + data.client.id + " " + data.type + " " + strChunk + "\n");
-          sessionLog.write(str);
-        }
-        stream.push(white(time));
-        if ((_ref1 = data.client) != null ? _ref1.id : void 0) {
-          stream.push(yellow(data.client.id));
-        }
-        if (data.type === 'C->S') {
-          stream.push(bold(cyan(data.type)));
-        } else if (data.type === 'S->C') {
-          stream.push(bold(blue(data.type)));
-        } else {
-          stream.push(bold(magenta('*S*')));
-        }
-        if (chunk != null ? chunk.a : void 0) {
-          stream.push(magenta(chunk.a));
-        }
-        if (chunk != null ? chunk.c : void 0) {
-          stream.push(green(chunk.c));
-        }
-        if (chunk != null ? chunk.doc : void 0) {
-          stream.push(green(chunk.doc));
-        }
-        if (chunk != null ? chunk.id : void 0) {
-          stream.push(green(chunk.id));
-        }
-        if (chunk != null ? chunk.q : void 0) {
-          stream.push(green(util.inspect(chunk.q, {
-            depth: null
-          })));
-        }
-        if ((chunk != null ? chunk.data : void 0) && chunk.a !== 'qsub' && chunk.a !== 'qfetch') {
-          stream.push(green(util.inspect(chunk.data, {
-            depth: 2
-          })));
-        }
-        if (chunk != null ? chunk.op : void 0) {
-          stream.push(green(util.inspect(chunk.op, {
-            depth: null
-          })));
-        }
-        if (chunk != null ? chunk.create : void 0) {
-          stream.push(white('[Create] ' + util.inspect(chunk.create, {
-            depth: null
-          })));
-        }
-        if (chunk != null ? chunk.del : void 0) {
-          stream.push(white('[DELETE]'));
-        }
-        if (chunk != null ? chunk.extra : void 0) {
-          stream.push(green(util.inspect(chunk.extra, {
-            depth: 2
-          })));
-        }
-        stream.push('\n');
-        return callback();
-      };
-      return stream;
-    };
+  stream._transform = function(data, encoding, callback) {
+    var chunk = (data.chunk) ? data.chunk : data;
+    var time = moment().format('YYYY/MM/DD HH:mm:ss Z');
+    push(white(time));
 
-}).call(this);
+    // Session client id
+    if (data.client && data.client.id) {
+      push(yellow(data.client.id));
+    }
+    // Client to Server or vice versa
+    if (data.type === 'C->S') {
+      push(bold(cyan(data.type)));
+    } else if (data.type === 'S->C') {
+      push(bold(blue(data.type)));
+    } else {
+      push(bold(magenta('*S*')));
+    }
+    // Action
+    if (chunk && chunk.a) {
+      push(magenta(chunk.a));
+    }
+    // Collection
+    if (chunk && chunk.c) {
+      push(green(chunk.c));
+    }
+    // Doc id
+    if (chunk && chunk.doc) {
+      push(green(chunk.doc));
+    }
+    // Id of subscription/query
+    if (chunk && chunk.id) {
+      push(green(chunk.id));
+    }
+    // Query parameters
+    if (chunk && chunk.q) {
+      push(green(util.inspect(chunk.q, {
+        depth: null
+      })));
+    }
+    // Data being sent
+    if (chunk && chunk.data && chunk.a !== 'qsub' && chunk.a !== 'qfetch') {
+      push(green(util.inspect(chunk.data, {depth: 2})));
+    }
+    // Document mutation
+    if (chunk && chunk.op) {
+      push(green(util.inspect(chunk.op, {depth: null})));
+    }
+    // Document creation
+    if (chunk && chunk.create) {
+      push(white('[Create] ' + util.inspect(chunk.create, {depth: null})));
+    }
+    // Document deletion
+    if (chunk && chunk.del) {
+      push(white('[Delete]'));
+    }
+    // Query extra
+    if (chunk && chunk.extra) {
+      push(green(util.inspect(chunk.extra, {depth: 2})));
+    }
+    // End of message
+    push('\n');
+    callback();
+  };
+  return stream;
+}
+
+function bold(value) {
+  return color(value, 'bold');
+}
+function black(value) {
+  return color(value, 'black');
+}
+function red(value) {
+  return color(value, 'red');
+}
+function green(value) {
+  return color(value, 'green');
+}
+function yellow(value) {
+  return color(value, 'yellow');
+}
+function blue(value) {
+  return color(value, 'blue');
+}
+function magenta(value) {
+  return color(value, 'magenta');
+}
+function cyan(value) {
+  return color(value, 'cyan');
+}
+function white(value) {
+  return color(value, 'white');
+}
