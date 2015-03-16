@@ -1,6 +1,6 @@
 {
   "name": "racer-logger",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "readable logging for derby applications",
   "main": "index.js",
   "scripts": {
