@@ -1,6 +1,5 @@
 var Transform = require('stream').Transform;
 var util = require('util');
-var moment = require('moment');
 var color = require('ansi-color').set;
 
 module.exports = function(store) {
@@ -17,7 +16,7 @@ function createStream() {
 
   stream._transform = function(data, encoding, callback) {
     var chunk = (data.chunk) ? data.chunk : data;
-    var time = moment().format('YYYY/MM/DD HH:mm:ss Z');
+    var time = new Date().toISOString().replace('T', ' ').slice(0, 19)
     push(white(time));
 
     // Session client id
