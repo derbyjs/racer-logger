@@ -15,9 +15,17 @@ function createStream() {
   }
 
   stream._transform = function(data, encoding, callback) {
-    var chunk = (data.chunk) ? data.chunk : data;
-    var time = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    if (!data) return callback();
+
+    var time = new Date().toISOString().replace('T', ' ').slice(0, 19);
     push(white(time));
+
+    var chunk = data.chunk || data;
+    if (typeof chunk === 'string') {
+      try {
+        chunk = JSON.parse(chunk);
+      } catch (err) {}
+    }
 
     // Session client id
     if (data.client && data.client.id) {
@@ -32,46 +40,52 @@ function createStream() {
       push(bold(magenta('*S*')));
     }
     // Action
-    if (chunk && chunk.a) {
+    if (chunk.a) {
       push(magenta(chunk.a));
     }
     // Collection
-    if (chunk && chunk.c) {
+    if (chunk.c) {
       push(green(chunk.c));
     }
     // Doc id
-    if (chunk && chunk.doc) {
-      push(green(chunk.doc));
+    if (chunk.d) {
+      push(green(chunk.d));
     }
-    // Id of subscription/query
-    if (chunk && chunk.id) {
+    // Id of query
+    if (chunk.id) {
       push(green(chunk.id));
     }
     // Query parameters
-    if (chunk && chunk.q) {
-      push(green(util.inspect(chunk.q, {
-        depth: null
-      })));
+    if (chunk.q) {
+      push(green(util.inspect(chunk.q, {depth: null})));
+    }
+    // Bulk subscribe parameters
+    if (chunk.s) {
+      push(green(util.inspect(chunk.s, {depth: null})));
     }
     // Data being sent
-    if (chunk && chunk.data && chunk.a !== 'qsub' && chunk.a !== 'qfetch') {
-      push(green(util.inspect(chunk.data, {depth: 2})));
+    if (chunk.data) {
+      if (chunk.a === 'qsub' || chunk.a === 'qfetch') {
+        push(green('- results: ' + chunk.data.length));
+      } else {
+        push(green('- version: ' + chunk.data.v));
+      }
     }
     // Document mutation
-    if (chunk && chunk.op) {
+    if (chunk.op) {
       push(green(util.inspect(chunk.op, {depth: null})));
     }
     // Document creation
-    if (chunk && chunk.create) {
+    if (chunk.create) {
       push(white('[Create] ' + util.inspect(chunk.create, {depth: null})));
     }
     // Document deletion
-    if (chunk && chunk.del) {
+    if (chunk.del) {
       push(white('[Delete]'));
     }
     // Query extra
-    if (chunk && chunk.extra) {
-      push(green(util.inspect(chunk.extra, {depth: 2})));
+    if (chunk.extra) {
+      push(green(util.inspect(chunk.extra, {depth: 1})));
     }
     // End of message
     push('\n');
