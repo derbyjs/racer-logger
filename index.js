@@ -17,7 +17,7 @@ function createStream() {
   stream._transform = function(data, encoding, callback) {
     if (!data) return callback();
 
-    var time = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    var time = new Date().toISOString().replace('T', ' ').slice(0, 19) + 'Z';
     push(white(time));
 
     var chunk = data.chunk || data;
@@ -27,37 +27,42 @@ function createStream() {
       } catch (err) {}
     }
 
-    // Session client id
-    if (data.client && data.client.id) {
-      push(yellow(data.client.id));
-    }
+    directionColor = (data.type === 'C->S') ? magenta : blue;
     // Client to Server or vice versa
-    if (data.type === 'C->S') {
-      push(bold(cyan(data.type)));
-    } else if (data.type === 'S->C') {
-      push(bold(blue(data.type)));
-    } else {
-      push(bold(magenta('*S*')));
+    if (data.type) {
+      push(directionColor(bold(data.type)));
+    }
+    if (data.src) {
+      push(directionColor(data.src));
     }
     // Action
     if (chunk.a) {
-      push(magenta(chunk.a));
+      push(directionColor(chunk.a));
+    }
+    if (chunk.src) {
+      push(yellow(chunk.src));
+    }
+    if (chunk.seq) {
+      push(yellow(chunk.seq));
     }
     // Collection
     if (chunk.c) {
-      push(green(chunk.c));
+      push(cyan(chunk.c));
     }
     // Doc id
     if (chunk.d) {
-      push(green(chunk.d));
+      push(cyan(chunk.d));
     }
     // Id of query
-    if (chunk.id) {
-      push(green(chunk.id));
+    if (chunk.id && chunk.a !== 'init') {
+      push(cyan(chunk.id));
     }
     // Query parameters
     if (chunk.q) {
       push(green(util.inspect(chunk.q, {depth: null})));
+    }
+    if (chunk.diff) {
+      push(green(util.inspect(chunk.diff, {depth: 2})));
     }
     // Bulk subscribe parameters
     if (chunk.s) {
@@ -77,18 +82,18 @@ function createStream() {
     }
     // Document creation
     if (chunk.create) {
-      push(white('[Create] ' + util.inspect(chunk.create, {depth: null})));
+      push(green('[create] ' + util.inspect(chunk.create, {depth: null})));
     }
     // Document deletion
     if (chunk.del) {
-      push(white('[Delete]'));
+      push(green('[delete]'));
     }
     // Query extra
     if (chunk.extra) {
       push(green(util.inspect(chunk.extra, {depth: 1})));
     }
     // End of message
-    push('\n');
+    stream.push('\n');
     callback();
   };
   return stream;
@@ -96,9 +101,6 @@ function createStream() {
 
 function bold(value) {
   return color(value, 'bold');
-}
-function black(value) {
-  return color(value, 'black');
 }
 function red(value) {
   return color(value, 'red');
