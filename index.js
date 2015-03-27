@@ -32,8 +32,16 @@ function createStream() {
     if (data.type) {
       push(directionColor(bold(data.type)));
     }
+    if (data.client && chunk.a === 'init' && chunk.id) {
+      data.client.__src = chunk.id;
+    }
     if (data.src) {
       push(directionColor(data.src));
+    } else if (data.client && data.client.__src) {
+      push(directionColor(data.client.__src));
+    }
+    if (data.client && data.client.id) {
+      push(directionColor(data.client.id));
     }
     // Action
     if (chunk.a) {
